@@ -26,11 +26,14 @@ case class TaskEndReasons(
                            className: String,
                            description: String)
 
-case class TaskVals(jobId: Int, stageId: Int, index: Long, launchTime: String, finishTime: String,
+case class TaskVals(jobId: Int, stageId: Int, taskId: Long, launchTime: String, finishTime: String,
                     duration: Long, executorId: String, host: String, taskLocality: Int,
                     speculative: Boolean, gettingResultTime: String, successful: Boolean, taskEndReason: TaskEndReasons)
 
-case class AppVals(appId: String, appName: String, groups: String, subGroups: String, jobType: String, appStartTime: String, appEndTime: String, appDuration: Long, cpuTime: Long, runTime: Long, memoryUsage: Long, appStatus: String, appResult: String, failureREason: String, recordCount: String,numexecutors:String, numexecutorscores:String, executormemory:String, queueName:String, sparkUserName:String)// numberOfTasks:Int, numberOfStages:Int )
+case class AppVals(appId: String, appName: String, groups: String, subGroups: String, jobType: String, appStartTime: String, appEndTime: String,
+                   appDuration: Long, cpuTime: Long, runTime: Long, memoryUsage: Long, appStatus: String, appResult: String, failureREason: String,
+                   recordCount: String,numexecutors:String, numexecutorscores:String, executormemory:String, queueName:String, sparkUserName:String,
+                   numberOfTasks:Int, numberOfStages:Int, numberOfJobs:Int )
 
 // case class LogVals(jobId: String, batchType: String, batchDate: String,
  //                  job: String, jobGroup: String, jobSubGroup: String, curDateTime: String, event: String, failureReason: String, totalRecordCount: Long)
@@ -112,8 +115,9 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
   val queueName = conf.get("spark.yarn.queue","default_queue")
   val sparkUserName = sc.sparkUser
 
- // var numberOfTasks = 0
- //  var numberOfStages = 0
+  var numberOfTasks = 0
+  var numberOfStages = 0
+  var numberOfJobs = 0
 
   def sendScalaMail(subject: String, body: String, emailAlertDist: String): Unit = {
     import scala.sys.process._
@@ -174,7 +178,7 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
     val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""),
       conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""),
       new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime),
-      0, 0, 0, 0, "Running", "", "", "0",numexecutors, executorcores, executormemory, queueName, sparkUserName)//, numberOfTasks, numberOfStages)
+      0, 0, 0, 0, "Running", "", "", "0",numexecutors, executorcores, executormemory, queueName, sparkUserName, numberOfTasks, numberOfStages, numberOfJobs )
 
 
 
@@ -220,7 +224,7 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
       runTime = runTime / 1000
     val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""), conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""),
       new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime),
-      0, 0, 0, 0, "Running", "", "", "0",numexecutors,executorcores,executormemory,queueName,sparkUserName)
+      0, 0, 0, 0, "Running", "", "", "0",numexecutors,executorcores,executormemory,queueName,sparkUserName, numberOfTasks, numberOfStages, numberOfJobs )
 
     //  sendJsonUpdate(currentApp)
 
@@ -265,7 +269,14 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
     if (runTime > 0 && runTime >= 1000)
       runTime = runTime / 1000
 
-    val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""), conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), appDuration, cpuTime, runTime, memoryUsage, "Running", "InProgress", "", "0",numexecutors,executorcores,executormemory,queueName,sparkUserName)
+    numberOfTasks = taskMetricsData.map(_.taskId).toList.distinct.size
+    numberOfStages = stageMetricsData.map(_.stageId).toList.distinct.size
+    numberOfJobs = stageMetricsData.map(_.jobId).toList.distinct.size
+
+    val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""),
+      conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""),
+      new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime),
+      appDuration, cpuTime, runTime, memoryUsage, "Running", "InProgress", "", "0", numexecutors, executorcores, executormemory, queueName, sparkUserName, numberOfTasks, numberOfStages, numberOfJobs )
 
     try {
       sendJsonUpdate(currentApp)
@@ -277,9 +288,15 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
   override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
 
     val appInfo = AppsData.last
-    //numberOfStages +=1
 
     val stageInfo = stageCompleted.stageInfo
+
+    val bytesRead = stageInfo.taskMetrics.inputMetrics.bytesRead
+    val recordsRead = stageInfo.taskMetrics.inputMetrics.recordsRead
+
+    val bytesWritten = stageInfo.taskMetrics.outputMetrics.bytesWritten
+    val recordsWritten = stageInfo.taskMetrics.outputMetrics.recordsWritten
+
     val taskMetrics = stageInfo.taskMetrics
     val jobId = StageIdtoJobId(stageInfo.stageId)
     val taskData = getTaskForStage(stageCompleted.stageInfo.stageId)
@@ -349,7 +366,7 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
   }
 
   def taskEndReasonToJson(taskEndReason: TaskEndReason): TaskEndReasons = {
-    val reason = getFormattedClassName(taskEndReason)
+   // val reason = getFormattedClassName(taskEndReason)
     var taskEndReasons: TaskEndReasons = null
     var className: String = null
     var description: String = null
@@ -374,7 +391,7 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
     val appInfo = AppsData.last
 
     val taskInfo = taskEnd.taskInfo
-    val taskMetrics = taskEnd.taskMetrics
+  //  val taskMetrics = taskEnd.taskMetrics.inputMetrics.recordsRead
 
     val gettingResultTime = {
       if (taskInfo.gettingResultTime == 0L) "0"
@@ -508,8 +525,11 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
       runTime = runTime / 1000
 
 
+    numberOfTasks = taskMetricsData.map(_.taskId).toList.distinct.size
+    numberOfStages = stageMetricsData.map(_.stageId).toList.distinct.size
+    numberOfJobs = stageMetricsData.map(_.jobId).toList.distinct.size
 
-    val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""), conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), sampleDf.format(appEndDateTime), appDuration, cpuTime, runTime, memoryUsage, "Complete", appResult, getJobError, recordWriteCount.toString(),numexecutors,executorcores,executormemory,queueName,sparkUserName)
+    val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""), conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), sampleDf.format(appEndDateTime), appDuration, cpuTime, runTime, memoryUsage, "Complete", appResult, getJobError, recordWriteCount.toString(),numexecutors,executorcores,executormemory,queueName,sparkUserName, numberOfTasks, numberOfStages, numberOfJobs )
     sendJsonUpdate(currentApp)
 
     // restClient.close()

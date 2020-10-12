@@ -96,20 +96,23 @@ object AvroUtils {
     val appDuration =record.get("appDuration").asInstanceOf[Int]
     val cpuTime = record.get("cpuTime").asInstanceOf[Int]
     val runTime =record.get("runTime").asInstanceOf[Int]
-    val memoryUsage= record.get("memoryUsage").asInstanceOf[Int]
-    val appResult=record.get("appResult").toString
-    val failureREason=record.get("failureREason").toString
+    val memoryUsage = record.get("memoryUsage").asInstanceOf[Int]
+    val appResult = record.get("appResult").toString
+    val failureREason = record.get("failureREason").toString
     val recordCount = record.get("recordCount").toString
-    val numexecutors=record.get("numexecutors").toString
+    val numexecutors = record.get("numexecutors").toString
     val executorcores = record.get("executorcores").toString
     val executormemory= record.get("executormemory").toString
-    val appStatus=record.get("appStatus").toString
-    val queueName=record.get("queueName").toString
-    val sparkUserName=record.get("sparkUserName").toString
+    val appStatus = record.get("appStatus").toString
+    val queueName = record.get("queueName").toString
+    val sparkUserName = record.get("sparkUserName").toString
+    val numberOfTasks = record.get("numberOfTasks").asInstanceOf[Int]
+    val numberOfStages = record.get("numberOfStages").asInstanceOf[Int]
+    val numberOfJobs = record.get("numberOfJobs").asInstanceOf[Int]
 
 
     AppVals(appId,appName,groups,subGroups,jobType,appStartTime,appEndTime,appDuration,cpuTime,runTime,memoryUsage,appStatus,
-      appResult,failureREason,recordCount,numexecutors,executorcores,executormemory,queueName,sparkUserName)
+      appResult,failureREason,recordCount,numexecutors,executorcores,executormemory,queueName,sparkUserName, numberOfTasks, numberOfStages , numberOfJobs )
   }
 
 }
