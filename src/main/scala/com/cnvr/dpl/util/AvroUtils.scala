@@ -110,9 +110,16 @@ object AvroUtils {
     val numberOfStages = record.get("numberOfStages").asInstanceOf[Int]
     val numberOfJobs = record.get("numberOfJobs").asInstanceOf[Int]
 
+    val inputBytes = record.get("inputBytes").asInstanceOf[Long]
+    val outputBytes = record.get("outputBytes").asInstanceOf[Long]
+    val inputRecords = record.get("inputRecords").asInstanceOf[Long]
+    val outputRecords = record.get("outputRecords").asInstanceOf[Long]
+
 
     AppVals(appId,appName,groups,subGroups,jobType,appStartTime,appEndTime,appDuration,cpuTime,runTime,memoryUsage,appStatus,
-      appResult,failureREason,recordCount,numexecutors,executorcores,executormemory,queueName,sparkUserName, numberOfTasks, numberOfStages , numberOfJobs )
+      appResult,failureREason,recordCount,numexecutors,executorcores,executormemory,queueName,sparkUserName, numberOfTasks, numberOfStages , numberOfJobs,
+      inputBytes, outputBytes, inputRecords, outputRecords
+    )
   }
 
 }

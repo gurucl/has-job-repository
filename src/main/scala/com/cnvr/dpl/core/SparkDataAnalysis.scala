@@ -1,7 +1,7 @@
 package com.cnvr.dpl.core
 
 import com.cnvr.dpl.listener.{ApplicationLevelMetricsSparkListener, MetricsListener, MyListener}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 
@@ -28,15 +28,22 @@ import org.apache.spark.sql.functions._
    // sc.addSparkListener(new ApplicationLevelMetricsSparkListener())
 
 
+
     val columns = "eid,fname,lname,sal,dept".split(",") //.map(col(_))
 
-    val df = spark.read.option("inferSchema","true")
+    val df1 = spark.read.option("inferSchema","true")
       .format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
-      .load("file:///Users/gurcl/IdeaProjects/MyProject/src/main/resources/emp.csv").toDF(columns:_*)
+      .load("file:///Users/gurcl/IdeaProjects/MyProject/src/main/resources/emp.csv")
+
+      val df = df1.toDF(columns:_*)
 
     df.printSchema()
 
     df.show(false)
+
+    val counter = sc.textFile("file:///Users/gurcl/IdeaProjects/MyProject/src/main/resources/emp.csv").count()
+
+    println(s"count is :$counter")
 
     // df.na.drop().show(false) // Both are same =>  df.na.drop("any").show(false)
 
@@ -64,6 +71,28 @@ import org.apache.spark.sql.functions._
 
     df3.filter($"dept_rank"===2).show(false)
 
+    df.write.mode(SaveMode.Append).csv("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_csv_output.txt")
+
+//    println("==============================================================")
+//
+//    df.write.mode(SaveMode.Append).orc("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_orc_output.txt")
+//
+//    println("==============================================================")
+//
+//    df.write.mode(SaveMode.Append).parquet("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_parquet_output.txt")
+//
+//    println("==============================================================")
+//
+//    df.write.mode(SaveMode.Append).save("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_save_output.txt")
+//
+//    println("==============================================================")
+//
+//    df.write.mode(SaveMode.Append).json("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_json_output.txt")
+//
+//    //df.write.mode(SaveMode.Append).("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_text_output.txt")
+//
+//   // df.write.mode(SaveMode.Append).
+//
 
     println(s"Spark Job has been completed successfully in ${(System.currentTimeMillis()-startTime)/1000} Seconds")
 

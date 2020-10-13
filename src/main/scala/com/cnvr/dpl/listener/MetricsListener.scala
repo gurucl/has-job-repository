@@ -17,7 +17,9 @@ import org.apache.spark._
 import org.apache.spark.scheduler._
 
 case class StageVals(jobId: Int, stageId: Int, name: String,
-                     submissionTime: String, completionTime: String, stageDuration: Long, numTasks: Int, executorRunTime: Long, executorCpuTime: Long, jvmGCTime: Long, peakExecutionMemory: Long, taskList: ListBuffer[TaskVals])
+                     submissionTime: String, completionTime: String, stageDuration: Long, numTasks: Int, executorRunTime: Long, executorCpuTime: Long,
+                     jvmGCTime: Long, peakExecutionMemory: Long, bytesRead:Long, bytesWritten:Long,  recordsRead:Long, recordsWritten:Long,
+                     taskList: ListBuffer[TaskVals])
 
 case class JobVals(jobId: Int, taskList: ListBuffer[TaskVals])
 
@@ -33,7 +35,8 @@ case class TaskVals(jobId: Int, stageId: Int, taskId: Long, launchTime: String, 
 case class AppVals(appId: String, appName: String, groups: String, subGroups: String, jobType: String, appStartTime: String, appEndTime: String,
                    appDuration: Long, cpuTime: Long, runTime: Long, memoryUsage: Long, appStatus: String, appResult: String, failureREason: String,
                    recordCount: String,numexecutors:String, numexecutorscores:String, executormemory:String, queueName:String, sparkUserName:String,
-                   numberOfTasks:Int, numberOfStages:Int, numberOfJobs:Int )
+                   numberOfTasks:Int, numberOfStages:Int, numberOfJobs:Int,
+                    bytesRead:Long, bytesWritten:Long,  recordsRead:Long, recordsWritten:Long)
 
 // case class LogVals(jobId: String, batchType: String, batchDate: String,
  //                  job: String, jobGroup: String, jobSubGroup: String, curDateTime: String, event: String, failureReason: String, totalRecordCount: Long)
@@ -100,8 +103,12 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
 //  var recordReadCount: Long = 0L
   var recordWriteCount: Long = 0L
 
-  var outputWritten = 0l
   var inputRecords = 0l
+  var outputRecords = 0l
+
+  var inputBytes = 0l
+  var outputBytes = 0l
+
   var outputWrittenshuff = 0l
   var outputWrittenshuffw = 0l
  // var outputCountWrittenshuff = 0l
@@ -178,7 +185,8 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
     val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""),
       conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""),
       new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime),
-      0, 0, 0, 0, "Running", "", "", "0",numexecutors, executorcores, executormemory, queueName, sparkUserName, numberOfTasks, numberOfStages, numberOfJobs )
+      0, 0, 0, 0, "Running", "", "", "0",numexecutors, executorcores, executormemory, queueName, sparkUserName, numberOfTasks, numberOfStages, numberOfJobs,
+      inputBytes, outputBytes, inputRecords, outputRecords )
 
 
 
@@ -224,7 +232,7 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
       runTime = runTime / 1000
     val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""), conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""),
       new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime),
-      0, 0, 0, 0, "Running", "", "", "0",numexecutors,executorcores,executormemory,queueName,sparkUserName, numberOfTasks, numberOfStages, numberOfJobs )
+      0, 0, 0, 0, "Running", "", "", "0",numexecutors,executorcores,executormemory,queueName,sparkUserName, numberOfTasks, numberOfStages, numberOfJobs, inputBytes, outputBytes, inputRecords, outputRecords )
 
     //  sendJsonUpdate(currentApp)
 
@@ -247,6 +255,7 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
   override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = {
 
     val appInfo = AppsData.last
+    val jobId = jobEnd.jobId
     val stageData = getStageForJob(jobEnd.jobId)
     val jobDuration = (jobEnd.time - JobtoTime(jobEnd.jobId)) / 1000
     val jobResultVal = JobResultVal(jobEnd.jobId, new SimpleDateFormat(dateFormat).format(JobtoTime(jobEnd.jobId)), new SimpleDateFormat(dateFormat).format(new Date(jobEnd.time)), jobDuration, jobEnd.jobResult.toString(), stageData)
@@ -273,10 +282,18 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
     numberOfStages = stageMetricsData.map(_.stageId).toList.distinct.size
     numberOfJobs = stageMetricsData.map(_.jobId).toList.distinct.size
 
+    // val aggregatedExecutorRunTime = stageMetricsData.toList.filter(x => x.jobId == jobId).map(x => x.executorRunTime).sum
+    val recordsReadByJob = stageMetricsData.toList.filter(x => x.jobId == jobId).map(x => x.recordsRead).sum
+    val recordsWrittenByJob = stageMetricsData.toList.filter(x => x.jobId == jobId).map(x => x.recordsWritten).sum
+    val bytesRead = stageMetricsData.toList.filter(x => x.jobId == jobId).map(x => x.bytesRead).sum
+    val bytesWritten = stageMetricsData.toList.filter(x => x.jobId == jobId).map(x => x.bytesWritten).sum
+
+    println(s"recordsReadByJob: $recordsReadByJob \t recordsWrittenByJob: $recordsWrittenByJob \t bytesRead: $bytesRead \t  bytesWritten:$bytesWritten ")
+
     val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""),
       conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""),
       new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime),
-      appDuration, cpuTime, runTime, memoryUsage, "Running", "InProgress", "", "0", numexecutors, executorcores, executormemory, queueName, sparkUserName, numberOfTasks, numberOfStages, numberOfJobs )
+      appDuration, cpuTime, runTime, memoryUsage, "Running", "InProgress", "", "0", numexecutors, executorcores, executormemory, queueName, sparkUserName, numberOfTasks, numberOfStages, numberOfJobs, inputBytes, outputBytes, inputRecords, outputRecords )
 
     try {
       sendJsonUpdate(currentApp)
@@ -291,35 +308,45 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
 
     val stageInfo = stageCompleted.stageInfo
 
-    val bytesRead = stageInfo.taskMetrics.inputMetrics.bytesRead
-    val recordsRead = stageInfo.taskMetrics.inputMetrics.recordsRead
-
-    val bytesWritten = stageInfo.taskMetrics.outputMetrics.bytesWritten
-    val recordsWritten = stageInfo.taskMetrics.outputMetrics.recordsWritten
-
     val taskMetrics = stageInfo.taskMetrics
     val jobId = StageIdtoJobId(stageInfo.stageId)
     val taskData = getTaskForStage(stageCompleted.stageInfo.stageId)
 
+    val bytesRead = taskMetrics.inputMetrics.bytesRead
+    val recordsRead = taskMetrics.inputMetrics.recordsRead
+    val bytesWritten = taskMetrics.outputMetrics.bytesWritten
+    val recordsWritten = taskMetrics.outputMetrics.recordsWritten
+
+    println(s"bytesRead:$bytesRead \t recordsRead:$recordsRead \t bytesWritten:$bytesWritten \t  recordsWritten:$recordsWritten ")
+
     val currentStage = StageVals(jobId, stageInfo.stageId, stageInfo.name,
       new SimpleDateFormat(dateFormat).format(stageInfo.submissionTime.getOrElse(0L)), new SimpleDateFormat(dateFormat).format(stageInfo.completionTime.getOrElse(0L)),
       (stageInfo.completionTime.getOrElse(0L) - stageInfo.submissionTime.getOrElse(0L)) / 1000,
-      stageInfo.numTasks, taskMetrics.executorRunTime, taskMetrics.executorCpuTime / 1000000, taskMetrics.jvmGCTime, taskMetrics.peakExecutionMemory, taskData)
+      stageInfo.numTasks, taskMetrics.executorRunTime, taskMetrics.executorCpuTime / 1000000, taskMetrics.jvmGCTime, taskMetrics.peakExecutionMemory,
+      bytesRead , bytesWritten ,  recordsRead , recordsWritten, taskData)
     stageMetricsData += currentStage
 
 
 
-    if (!stageInfo.name.contains("count") && !stageInfo.name.contains("collect") && !stageInfo.name.contains("take") && !stageInfo.name.contains("show")) {
+   // if (!stageInfo.name.contains("count") && !stageInfo.name.contains("collect") && !stageInfo.name.contains("take") && !stageInfo.name.contains("show")) {
+
+      if (stageInfo.name.contains("csv") || stageInfo.name.contains("orc") || stageInfo.name.contains("parquet") ||
+        stageInfo.name.contains("save")|| stageInfo.name.contains("insert")  ) {
+
+      println(s"stage Name: ${stageInfo.name}")
+
       if (taskMetrics.inputMetrics != None) {
         inputRecords += taskMetrics.inputMetrics.recordsRead
+        inputBytes += taskMetrics.inputMetrics.bytesRead
       }
       if (taskMetrics.outputMetrics != None) {
-        outputWritten += taskMetrics.outputMetrics.recordsWritten
+        outputRecords += taskMetrics.outputMetrics.recordsWritten
+        outputBytes += taskMetrics.outputMetrics.bytesWritten
       }
 
       outputWrittenshuff += taskMetrics.shuffleWriteMetrics.recordsWritten
       outputWrittenshuffw += taskMetrics.shuffleWriteMetrics.shuffleRecordsWritten
-      outputWrittenshuff += outputWritten
+      outputWrittenshuff += outputRecords
 
     }
 
@@ -529,7 +556,11 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
     numberOfStages = stageMetricsData.map(_.stageId).toList.distinct.size
     numberOfJobs = stageMetricsData.map(_.jobId).toList.distinct.size
 
-    val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""), conf.get("spark.subGroup", ""), conf.get("spark.jobtype", ""), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), sampleDf.format(appEndDateTime), appDuration, cpuTime, runTime, memoryUsage, "Complete", appResult, getJobError, recordWriteCount.toString(),numexecutors,executorcores,executormemory,queueName,sparkUserName, numberOfTasks, numberOfStages, numberOfJobs )
+    val currentApp = AppVals(appInfo.appId, appInfo.appName, conf.get("spark.group", ""), conf.get("spark.subGroup", ""),
+      conf.get("spark.jobtype", ""), new SimpleDateFormat(dateFormat).format(appInfo.appStartTime), sampleDf.format(appEndDateTime),
+      appDuration, cpuTime, runTime, memoryUsage, "Complete", "Success", getJobError(), recordWriteCount.toString(),
+      numexecutors,executorcores,executormemory,queueName,sparkUserName, numberOfTasks, numberOfStages, numberOfJobs,
+      inputBytes, outputBytes, inputRecords, outputRecords)
     sendJsonUpdate(currentApp)
 
     // restClient.close()
