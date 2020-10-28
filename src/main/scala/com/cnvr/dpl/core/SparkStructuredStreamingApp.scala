@@ -12,7 +12,7 @@ import org.apache.spark.sql.streaming.StreamingQuery
 import org.apache.spark.sql.{Dataset, SparkSession}
 
 
-object StructuredStreamingApp {
+object SparkStructuredStreamingApp {
 
   private val topic = "my-topic"
   private val kafkaUrl = "localhost:9092"
