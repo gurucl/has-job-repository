@@ -81,19 +81,19 @@ import org.apache.spark.sql.functions._
 
     df3.filter($"dept_rank"===2).show(false)
 
-    df.write.mode(SaveMode.Append).csv("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_csv_output.txt")
+    df.write.mode(SaveMode.Append).csv("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_csv_output")
 
     println("==============================================================")
 
-    df.write.mode(SaveMode.Append).orc("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_orc_output.txt")
+    df.write.mode(SaveMode.Append).orc("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_orc_output")
 
     println("==============================================================")
 
-    df.write.mode(SaveMode.Append).parquet("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_parquet_output.txt")
+    df.write.mode(SaveMode.Append).parquet("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_parquet_output")
 
     println("==============================================================")
 
-    df.write.mode(SaveMode.Append).save("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_save_output.txt")
+    df.write.mode(SaveMode.Append).save("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_save_output")
 
     println("==============================================================")
 //
