@@ -1,9 +1,13 @@
 package com.cnvr.dpl.core
 
-import com.cnvr.dpl.listener.{ApplicationLevelMetricsSparkListener, MetricsListener, MyListener}
+import java.util.Properties
+
+import com.cnvr.dpl.listener.{ MetricsListener, MyListener}
+import org.apache.log4j.Logger
 import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
+
 
   object SparkDataAnalysis {
 
@@ -11,21 +15,25 @@ import org.apache.spark.sql.functions._
 
     val startTime = System.currentTimeMillis()
 
-    val spark = SparkSession.builder()
+    implicit val logger = Logger.getLogger(getClass)
+
+    implicit val props = new Properties()
+
+    implicit val spark = SparkSession.builder()
       .appName("Spark_data_analysis")
       .master("local[1]")
       //.config("spark.extraListeners",new MetricsListener())
       .getOrCreate()
 
-    implicit val sc = spark.sparkContext
+     val sc = spark.sparkContext
 
     sc.setLogLevel("Error")
 
   //  sc.addSparkListener(new MyListener(sc))
 
-    sc.addSparkListener(new MetricsListener())
+    sc.addSparkListener(new MetricsListener(sc))
 
-   // sc.addSparkListener(new ApplicationLevelMetricsSparkListener())
+  //  sc.addSparkListener(new ApplicationLevelMetricsSparkListener("","",""))
 
 
 
@@ -41,7 +49,9 @@ import org.apache.spark.sql.functions._
 
     df.show(false)
 
-    val counter = sc.textFile("file:///Users/gurcl/IdeaProjects/MyProject/src/main/resources/emp.csv").count()
+    val counter = df.count()
+
+//    val counter = sc.textFile("file:///Users/gurcl/IdeaProjects/MyProject/src/main/resources/emp.csv").count()
 
     println(s"count is :$counter")
 
@@ -73,19 +83,19 @@ import org.apache.spark.sql.functions._
 
     df.write.mode(SaveMode.Append).csv("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_csv_output.txt")
 
-//    println("==============================================================")
-//
-//    df.write.mode(SaveMode.Append).orc("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_orc_output.txt")
-//
-//    println("==============================================================")
-//
-//    df.write.mode(SaveMode.Append).parquet("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_parquet_output.txt")
-//
-//    println("==============================================================")
-//
-//    df.write.mode(SaveMode.Append).save("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_save_output.txt")
-//
-//    println("==============================================================")
+    println("==============================================================")
+
+    df.write.mode(SaveMode.Append).orc("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_orc_output.txt")
+
+    println("==============================================================")
+
+    df.write.mode(SaveMode.Append).parquet("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_parquet_output.txt")
+
+    println("==============================================================")
+
+    df.write.mode(SaveMode.Append).save("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_save_output.txt")
+
+    println("==============================================================")
 //
 //    df.write.mode(SaveMode.Append).json("/Users/gurcl/IdeaProjects/MyProject/src/main/resources/test_json_output.txt")
 //

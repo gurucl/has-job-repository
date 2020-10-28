@@ -45,7 +45,7 @@ case class AppInfo(appId: String, appName: String, appStartTime: Long)
 
 // case class LogInfo(batchId: String, batchType: String, batchDate: String, jobName: String, jobGroup: String, jobSubGroup: String, currDate: String, event: String, failureReason: String, recordCount: String)
 
-class MetricsListener(implicit sc: SparkContext) extends SparkListener {
+class MetricsListener( sc: SparkContext) extends SparkListener {
 
   val conf = sc.getConf
 
@@ -160,7 +160,7 @@ class MetricsListener(implicit sc: SparkContext) extends SparkListener {
       // ElasticConnect.updateToElasticSearch(restClient, currentApp.appId, jsonString, "has_feeds", "_doc")
       println(currentApp)
      // println("Entered into the method: sendJsonUpdate")
-     //  KafkaProducer.sendToKafkaWithNewProducer(currentApp)
+       KafkaProducer.sendToKafkaWithNewProducer(currentApp)
      // println(s"Method Name: sendJsonUpdate \t message: ${currentApp.toString()}")
       // esController.updateRecordById("es_dlf_domain_feeds", "job_activity", currentApp.appId, jsonString)
     } catch {

@@ -71,6 +71,15 @@ object AvroUtils {
     avroRecord.put("queueName", operation.queueName)
     avroRecord.put("sparkUserName", operation.sparkUserName)
 
+    avroRecord.put("numberOfTasks", operation.numberOfTasks)
+    avroRecord.put("numberOfStages", operation.numberOfStages)
+    avroRecord.put("numberOfJobs", operation.numberOfJobs)
+
+    avroRecord.put("bytesRead", operation.bytesRead)
+    avroRecord.put("bytesWritten", operation.bytesWritten)
+    avroRecord.put("recordsRead", operation.recordsRead)
+    avroRecord.put("recordsWritten", operation.recordsWritten)
+
     //    writer.write(avroRecord, encoder)
     //    encoder.flush
     //    out.close

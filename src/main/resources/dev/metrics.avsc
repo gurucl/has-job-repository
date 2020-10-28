@@ -62,5 +62,33 @@
     }, {
        	"name": "sparkUserName",
         "type": "string"
-	}]
+	},{
+             "name": "numberOfTasks",
+             "type": "int"
+         },
+         {
+                 "name": "numberOfStages",
+                 "type": "int"
+             },
+             {
+                     "name": "numberOfJobs",
+                     "type": "int"
+                 },
+                 {
+                         "name": "bytesRead",
+                         "type": "long"
+                     },
+                     {
+                             "name": "bytesWritten",
+                             "type": "long"
+                         },
+                         {
+                                 "name": "recordsRead",
+                                 "type": "long"
+                             },{
+                                                                "name": "recordsWritten",
+                                                                "type": "long"
+                                                            }
+
+	]
 }
